@@ -1,0 +1,119 @@
+ORG 0000H
+LJMP START
+
+ORG 000BH
+LJMP ISR_TIMER0
+
+START:
+    CLR P1.4
+    CLR P1.5
+    MOV TMOD, #11H
+    MOV TH0, #0D8H
+    MOV TL0, #0F0H
+    SETB ET0
+    SETB EA
+    CLR TR0
+    MOV R1, #0
+    MOV R2, #0
+
+MAIN_LOOP:
+    ACALL HIEN_THI
+    ACALL CHECK_BUTTON
+    SJMP MAIN_LOOP
+
+ISR_TIMER0:
+    CLR TR0
+    MOV TH0, #0D8H
+    MOV TL0, #0F0H
+    CPL P1.4
+    SETB TR0
+    INC R2
+    CJNE R2, #100, EXIT_ISR
+    MOV R2, #0
+    INC R1
+    CJNE R1, #100, EXIT_ISR
+    MOV R1, #0
+EXIT_ISR:
+    RETI
+
+CHECK_BUTTON:
+    JNB P3.2, BUTTON_A
+    JNB P3.3, BUTTON_B
+    JNB P3.4, BUTTON_C
+    JNB P3.5, BUTTON_D
+    RET
+
+BUTTON_A:
+    JNB P3.2, $
+    CPL TR0
+    RET
+
+BUTTON_B:
+    JNB P3.3, $
+    CLR TR0
+    MOV R1, #0
+    MOV R2, #0
+    RET
+
+BUTTON_C:
+    JNB P3.4, $
+    INC R1
+    CJNE R1, #100, EXIT_BUTTON
+    SJMP RESET_VE_0000
+
+BUTTON_D:
+    JNB P3.5, $
+    MOV A, R1
+    JZ RESET_VE_0000
+    DEC R1
+    RET
+
+RESET_VE_0000:
+    MOV R1, #0
+    MOV R2, #0
+EXIT_BUTTON:
+    RET
+
+HIEN_THI:
+    MOV A, R1
+    MOV B, #10
+    DIV AB
+    MOV P2, A
+    SETB P2.4
+    MOV P1, #00000001B
+    ACALL DELAY_1MS
+    MOV P1, #0
+
+    MOV P2, B
+    CLR P2.4
+    MOV P1, #00000010B
+    ACALL DELAY_1MS
+    MOV P1, #0
+
+    MOV A, R2
+    MOV B, #10
+    DIV AB
+    MOV P2, A
+    SETB P2.4
+    MOV P1, #00000100B
+    ACALL DELAY_1MS
+    MOV P1, #0
+
+    MOV P2, B
+    SETB P2.4
+    MOV P1, #00001000B
+    ACALL DELAY_1MS
+    MOV P1, #0
+    RET
+
+DELAY_1MS:
+    CPL P1.5
+    MOV TH1, #0FCH
+    MOV TL1, #018H
+    CLR TF1
+    SETB TR1
+    JNB TF1, $
+    CLR TR1
+    RET
+
+END

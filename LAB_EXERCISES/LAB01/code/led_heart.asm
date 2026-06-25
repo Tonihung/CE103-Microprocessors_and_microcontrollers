@@ -1,0 +1,142 @@
+ORG 0000H
+JMP MAIN
+
+ORG 0100H
+
+MAIN:
+    CALL EFFECT_1
+    CALL EFFECT_2
+    CALL EFFECT_3
+    JMP MAIN
+
+DELAY1:
+    MOV R0, #192
+LOOP1:
+    MOV R1, #192
+CONT:
+    DJNZ R1, LOOP2
+    DJNZ R0, LOOP1
+    RET
+LOOP2:
+    NOP
+    JMP CONT
+
+DELAY2:
+    MOV R2, #120
+LOOP3:
+    MOV R3, #130
+CONT1:
+    DJNZ R3, LOOP4
+    DJNZ R2, LOOP3
+    RET
+LOOP4:
+    NOP
+    JMP CONT1
+
+EFFECT_1:
+    MOV R4, #13
+E1_LOOP:
+    MOV P0, #55H
+    MOV P1, #55H
+    MOV P2, #55H
+    MOV P3, #55H
+    CALL DELAY1
+
+    MOV P0, #0AAH
+    MOV P1, #0AAH
+    MOV P2, #0AAH
+    MOV P3, #0AAH
+    CALL DELAY1
+
+    DJNZ R4, E1_LOOP
+    RET
+
+EFFECT_2:
+    MOV R4, #2
+E2_LOOP:
+    MOV P1, #0FFH
+    MOV P2, #0FFH
+    MOV P3, #0FFH
+    MOV P0, #07FH
+    MOV A, P0
+    MOV R5, #8
+LOOP_P0:
+    RL A
+    MOV P0, A
+    CALL DELAY2
+    DJNZ R5, LOOP_P0
+
+    MOV P0, #0FFH
+    MOV P2, #0FFH
+    MOV P3, #0FFH
+    MOV P1, #07FH
+    MOV A, P1
+    MOV R5, #8
+LOOP_P1:
+    RL A
+    MOV P1, A
+    CALL DELAY2
+    DJNZ R5, LOOP_P1
+
+    MOV P0, #0FFH
+    MOV P1, #0FFH
+    MOV P3, #0FFH
+    MOV P2, #07FH
+    MOV A, P2
+    MOV R5, #8
+LOOP_P2:
+    RL A
+    MOV P2, A
+    CALL DELAY2
+    DJNZ R5, LOOP_P2
+
+    MOV P0, #0FFH
+    MOV P1, #0FFH
+    MOV P2, #0FFH
+    MOV P3, #07FH
+    MOV A, P3
+    MOV R5, #8
+LOOP_P3:
+    RL A
+    MOV P3, A
+    CALL DELAY2
+    DJNZ R5, LOOP_P3
+
+    DJNZ R4, E2_LOOP
+    RET
+
+EFFECT_3:
+    MOV R4, #0E0H
+    MOV R5, #0FFH
+    MOV R6, #0FFH
+    MOV R7, #0FFH
+    MOV R0, #64
+E3_LOOP:
+    MOV P0, R4
+    MOV P1, R5
+    MOV P2, R6
+    MOV P3, R7
+    CALL DELAY2
+
+    MOV A, R7
+    RLC A
+    MOV A, R4
+    RLC A
+    MOV R4, A
+
+    MOV A, R5
+    RLC A
+    MOV R5, A
+
+    MOV A, R6
+    RLC A
+    MOV R6, A
+
+    MOV A, R7
+    RLC A
+    MOV R7, A
+
+    DJNZ R0, E3_LOOP
+    RET
+
+END

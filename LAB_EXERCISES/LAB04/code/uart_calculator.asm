@@ -1,0 +1,270 @@
+ORG 0000H
+LJMP START
+
+ROW EQU P1
+COL EQU P2
+X EQU R0
+Y EQU R1
+PHEP_TINH EQU R2
+FLAG EQU R3
+SO_DU EQU R4
+
+ORG 0100H
+START:
+    MOV TMOD, #20H
+    MOV TH1, #0FDH
+    MOV SCON, #50H
+    SETB TR1
+    MOV X, #0
+    MOV Y, #0
+    MOV FLAG, #0
+    MOV PHEP_TINH, #0
+    MOV SO_DU, #0
+
+KEYPAD:
+    MOV ROW, #00H
+WAIT_PRESS:
+    MOV A, COL
+    ANL A, #0FH
+    CJNE A, #0FH, CHECK_PRESS
+    SJMP WAIT_PRESS
+
+CHECK_PRESS:
+    LCALL DELAY
+    MOV A, COL
+    ANL A, #0FH
+    CJNE A, #0FH, TIM_ROW
+    SJMP KEYPAD
+
+TIM_ROW:
+    MOV ROW, #0FEH
+    MOV A, COL
+    ANL A, #0FH
+    CJNE A, #0FH, QUET_R1
+
+    MOV ROW, #0FDH
+    MOV A, COL
+    ANL A, #0FH
+    CJNE A, #0FH, QUET_R2
+
+    MOV ROW, #0FBH
+    MOV A, COL
+    ANL A, #0FH
+    CJNE A, #0FH, QUET_R3
+
+    MOV ROW, #0F7H
+    MOV A, COL
+    ANL A, #0FH
+    CJNE A, #0FH, QUET_R4
+    LJMP WAIT_PRESS
+
+QUET_R1:
+    MOV DPTR, #ROW_1
+    SJMP TIM_COL
+QUET_R2:
+    MOV DPTR, #ROW_2
+    SJMP TIM_COL
+QUET_R3:
+    MOV DPTR, #ROW_3
+    SJMP TIM_COL
+QUET_R4:
+    MOV DPTR, #ROW_4
+    SJMP TIM_COL
+
+TIM_COL:
+    RRC A
+    JNC NEXT
+    INC DPTR
+    SJMP TIM_COL
+
+NEXT:
+    MOV A, #0
+    MOVC A, @A+DPTR
+    LCALL TINH
+
+WAIT_RELEASE:
+    MOV ROW, #00H
+    MOV A, COL
+    ANL A, #0FH
+    CJNE A, #0FH, WAIT_RELEASE
+    LJMP KEYPAD
+
+TINH:
+    CJNE A, #'C', CHECK_EQUAL
+    LJMP CLEAR
+
+CHECK_EQUAL:
+    LCALL HIENTHI
+    CJNE A, #'=', NOT_EQUAL
+    MOV A, PHEP_TINH
+    CJNE A, #'+', CHECK_SUB
+    MOV A, X
+    ADD A, Y
+    SJMP DONE
+
+CHECK_SUB:
+    CJNE A, #'-', CHECK_MUL
+    CLR C
+    MOV A, X
+    SUBB A, Y
+    JC IN_AM
+    LJMP DONE
+
+IN_AM:
+    MOV B, A
+    MOV A, #'-'
+    LCALL HIENTHI
+    MOV A, B
+    CPL A
+    INC A
+    SJMP DONE
+
+CHECK_MUL:
+    CJNE A, #'X', CHECK_DIV
+    MOV A, X
+    MOV B, Y
+    MUL AB
+    SJMP DONE
+
+CHECK_DIV:
+    MOV A, Y
+    JZ IN_ERROR
+    MOV A, X
+    MOV B, Y
+    DIV AB
+    MOV SO_DU, B
+    LCALL IN_SO
+    MOV A, #'.'
+    LCALL HIENTHI
+
+    MOV A, SO_DU
+    MOV B, #10
+    MUL AB
+    MOV B, Y
+    DIV AB
+    MOV SO_DU, B
+    LCALL IN_SO
+
+    MOV A, SO_DU
+    MOV B, #10
+    MUL AB
+    MOV B, Y
+    DIV AB
+    CJNE A, #5, LAM_TRON
+    INC A
+    SJMP DONE
+
+LAM_TRON:
+    JC DONE
+    INC A
+
+DONE:
+    LCALL IN_SO
+    MOV FLAG, #0
+    RET
+
+NOT_EQUAL:
+    CJNE A, #'+', CHECK_OPT2
+    MOV PHEP_TINH, A
+    MOV FLAG, #1
+    RET
+
+CHECK_OPT2:
+    CJNE A, #'-', CHECK_OPT3
+    MOV PHEP_TINH, A
+    MOV FLAG, #1
+    RET
+
+CHECK_OPT3:
+    CJNE A, #'X', CHECK_OPT4
+    MOV PHEP_TINH, A
+    MOV FLAG, #1
+    RET
+
+CHECK_OPT4:
+    CJNE A, #'/', LUU_SO
+    MOV PHEP_TINH, A
+    MOV FLAG, #1
+    RET
+
+LUU_SO:
+    MOV B, A
+    MOV A, FLAG
+    CJNE A, #0, NHAP_Y
+    CLR C
+    MOV A, B
+    SUBB A, #'0'
+    MOV X, A
+    RET
+
+NHAP_Y:
+    MOV A, B
+    CLR C
+    SUBB A, #'0'
+    MOV Y, A
+    RET
+
+CLEAR:
+    LCALL DELAY
+    MOV A, #0FEH
+    LCALL HIENTHI
+    LCALL DELAY
+    MOV A, #01H
+    LCALL HIENTHI
+    LJMP START
+
+IN_ERROR:
+    MOV DPTR, #ERROR_STR
+    LCALL IN_STR
+    MOV FLAG, #0
+    RET
+
+IN_STR:
+    CLR A
+    MOVC A, @A+DPTR
+    JZ KET_THUC_CHUOI
+    LCALL HIENTHI
+    INC DPTR
+    SJMP IN_STR
+KET_THUC_CHUOI:
+    RET
+
+IN_SO:
+    MOV B, #10
+    DIV AB
+    CJNE A, #0, IN_CHUC
+    SJMP IN_DONVI
+IN_CHUC:
+    ADD A, #'0'
+    LCALL HIENTHI
+IN_DONVI:
+    MOV A, B
+    ADD A, #'0'
+    LCALL HIENTHI
+    RET
+
+HIENTHI:
+    MOV SBUF, A
+HERE:
+    JNB TI, HERE
+    CLR TI
+    RET
+
+DELAY:
+    MOV R6, #192
+LOOP1:
+    MOV R5, #192
+LOOP2:
+    NOP
+    DJNZ R5, LOOP2
+    DJNZ R6, LOOP1
+    RET
+
+ORG 300H
+ROW_1: DB '7','8','9','/'
+ROW_2: DB '4','5','6','X'
+ROW_3: DB '1','2','3','-'
+ROW_4: DB 'C','0','=','+'
+ERROR_STR: DB 'Error', 0
+
+END
